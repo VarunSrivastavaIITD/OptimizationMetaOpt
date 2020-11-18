@@ -103,6 +103,16 @@ def run_epoch(epoch, args, model, train_loader, valid_loader, test_loader):
 
 def main(args):
     wandb.init(project="gbml")
+
+    DataClass = None
+    if args.dataset == 'omniglot':
+        DataClass = Omniglot
+        args.in_channels = 1
+    elif args.dataset == 'miniimagenet':
+        DataClass = MiniImagenet
+        args.in_channels = 3
+
+
     if args.alg == 'MAML':
         model = MAML(args)
     elif args.alg == 'Reptile':
@@ -120,13 +130,7 @@ def main(args):
     elif args.load_encoder:
         model.load_encoder()
 
-    DataClass = None
-    if args.dataset == 'omniglot':
-        DataClass = Omniglot
-        args.in_channels = 1
-    elif args.dataset == 'miniimagenet':
-        DataClass = MiniImagenet
-        args.in_channels = 3
+    
 
     wandb.config.update(args)
 
