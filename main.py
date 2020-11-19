@@ -105,13 +105,16 @@ def main(args):
     wandb.init(project="gbml")
 
     DataClass = None
+    normalizer = None
     if args.dataset == 'omniglot':
         DataClass = Omniglot
         args.in_channels = 1
+        normalizer = lambda x: x
     elif args.dataset == 'miniimagenet':
         DataClass = MiniImagenet
         args.in_channels = 3
-
+        normalizer = transforms.Normalize(np.array([0.485, 0.456, 0.406]),
+                                          np.array([0.229, 0.224, 0.225]))
 
     if args.alg == 'MAML':
         model = MAML(args)
@@ -130,8 +133,6 @@ def main(args):
     elif args.load_encoder:
         model.load_encoder()
 
-    
-
     wandb.config.update(args)
 
     train_dataset = DataClass(
@@ -144,9 +145,7 @@ def main(args):
                                    contrast=0.4,
                                    saturation=0.4),
             transforms.RandomHorizontalFlip(),
-            transforms.ToTensor(),
-            # transforms.Normalize(np.array([0.485, 0.456, 0.406]),
-            #                      np.array([0.229, 0.224, 0.225])),
+            transforms.ToTensor(), normalizer
         ]),
         target_transform=Categorical(num_classes=args.num_way),
         download=True)
@@ -164,12 +163,9 @@ def main(args):
         args.data_path,
         num_classes_per_task=args.num_way,
         meta_split='val',
-        transform=transforms.Compose([
-            transforms.CenterCrop(80),
-            transforms.ToTensor(),
-            # transforms.Normalize(np.array([0.485, 0.456, 0.406]),
-            #                      np.array([0.229, 0.224, 0.225]))
-        ]),
+        transform=transforms.Compose(
+            [transforms.CenterCrop(80),
+             transforms.ToTensor(), normalizer]),
         target_transform=Categorical(num_classes=args.num_way))
     valid_dataset = ClassSplitter(valid_dataset,
                                   shuffle=True,
@@ -185,12 +181,9 @@ def main(args):
         args.data_path,
         num_classes_per_task=args.num_way,
         meta_split='test',
-        transform=transforms.Compose([
-            transforms.CenterCrop(80),
-            transforms.ToTensor(),
-            transforms.Normalize(np.array([0.485, 0.456, 0.406]),
-                                 np.array([0.229, 0.224, 0.225]))
-        ]),
+        transform=transforms.Compose(
+            [transforms.CenterCrop(80),
+             transforms.ToTensor(), normalizer]),
         target_transform=Categorical(num_classes=args.num_way))
     test_dataset = ClassSplitter(test_dataset,
                                  shuffle=True,
